@@ -1,5 +1,7 @@
 #include "gba/gba.h"
 #include "gba/flash_internal.h"
+#include "save.h"
+#include "constants/rgb.h"
 
 const u16 mxMaxTime[] =
 {
@@ -153,22 +155,119 @@ static u16 ProgramByte(u8 *src, u8 *dest)
     return WaitForFlashWrite(1, dest, *src);
 }
 
+void CopyFlashToSram(u16 slotNum) {
+    u16 i;
+    u8 *src = (u8 *) FLASH_SAVE_START + slotNum * FLASH_SECTOR_SIZE;
+    u8 *dst = SRAM_BASE;
+    for (i = 0; i < SECTOR_SIZE * NUM_SECTORS_PER_SLOT; i++) {
+        *dst = *src;
+        dst++;
+        src++;
+    }
+}
+
+#define FLASH_SAVE_OFFSET 0x0f00000
+#define AGB_ROM 0x8000000
+#define SRAM_SIZE 0x1000
+#define _FLASH_WRITE(pa, pd) { *(((u16 *)AGB_ROM)+((pa)/2)) = pd; __asm("nop"); }
+
+u16 _CopySramToFlash(u16 slotNum) {
+    u32 dst = FLASH_SAVE_OFFSET + slotNum * FLASH_SECTOR_SIZE;
+	u16 ie = REG_IE;
+    int i;
+	REG_IE = ie & 0xFFFE;
+    // Erase flash sector
+    _FLASH_WRITE(dst, 0xF0);
+    _FLASH_WRITE(0xAAA, 0xA9);
+    _FLASH_WRITE(0x555, 0x56);
+    _FLASH_WRITE(0xAAA, 0x80);
+    _FLASH_WRITE(0xAAA, 0xA9);
+    _FLASH_WRITE(0x555, 0x56);
+    _FLASH_WRITE(dst, 0x30);
+    *(vu16 *)BG_PLTT = RGB_RED; // Set the backdrop to white on startup
+    while (1) {
+        __asm("nop");
+        if (*(((vu16 *)AGB_ROM)+(dst/2)) == 0xFFFF) {
+            break;
+        }
+    }
+    _FLASH_WRITE(dst, 0xF0);
+    *(vu16 *)BG_PLTT = RGB_GREEN; // Set the backdrop to white on startup
+    // Write data
+    for (i=0; i<SRAM_SIZE / 2; i+=2) {
+        u16 half = (*(u8 *)(SRAM_BASE+i+1)) << 8 | (*(u8 *)(SRAM_BASE+i));
+        _FLASH_WRITE(0xAAA, 0xA9);
+        _FLASH_WRITE(0x555, 0x56);
+        _FLASH_WRITE(0xAAA, 0xA0);
+        _FLASH_WRITE(dst+i, half);
+        while (1) {
+            __asm("nop");
+            if (*(((vu16 *)AGB_ROM)+((dst+i)/2)) == half) {
+                break;
+            }
+        }
+    }
+    *(vu16 *)BG_PLTT = RGB_CYAN; // Set the backdrop to white on startup
+    _FLASH_WRITE(dst, 0xF0);
+	REG_IE = ie;
+    return 0;
+}
+
+u16 CopySramToFlash(u16 slotNum) {
+    u32 i;
+    vu16 inner_func_buffer[0x100];
+    vu16 *funcSrc;
+    vu16 *funcDst;
+    u16 (*innerFunc)(u16);
+    *(vu16 *)BG_PLTT = RGB_YELLOW; // Set the backdrop to white on startup
+    funcSrc = (vu16 *)_CopySramToFlash;
+    funcSrc = (vu16 *)((s32)funcSrc ^ 1);
+    funcDst = inner_func_buffer;
+
+    i = ((s32)CopySramToFlash - (s32)_CopySramToFlash) >> 1;
+    while (i != 0)
+    {
+        *funcDst++ = *funcSrc++;
+        i--;
+    }
+    innerFunc = (u16 (*)(u16))((s32)inner_func_buffer + 1);
+    *(vu16 *)BG_PLTT = RGB_BLUE; // Set the backdrop to white on startup
+    return innerFunc(slotNum);
+}
+
+void CopySectorToSram(u16 sectorNum, u8 *src) {
+    u8 *dst;
+    u16 i;
+    sectorNum %= NUM_SECTORS_PER_SLOT;
+    dst = SRAM_BASE + sectorNum * SECTOR_SIZE;
+    for (i = 0; i < SECTOR_SIZE; i++) {
+        *dst = *src;
+        dst++;
+        src++;
+    }
+}
+
 u16 ProgramFlashSector_MX(u16 sectorNum, u8 *src)
 {
     u16 result;
     u8 *dest;
     u16 readFlash1Buffer[0x20];
 
-    if (sectorNum >= gFlash->sector.count)
+    if (sectorNum < SECTOR_ID_HOF_1) {
+        // Just write to SRAM, caller copies back to flash
+        CopySectorToSram(sectorNum, src);
+        return 0;
+    }
+    // Special sector, write directly to flash
+    // TODO
+
+    if (sectorNum >= SECTORS_COUNT)
         return 0x80FF;
 
     result = EraseFlashSector_MX(sectorNum);
 
     if (result != 0)
         return result;
-
-    SwitchFlashBank(sectorNum / SECTORS_PER_BANK);
-    sectorNum %= SECTORS_PER_BANK;
 
     SetReadFlash1(readFlash1Buffer);
 

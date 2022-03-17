@@ -2,6 +2,7 @@
 #define GUARD_GBA_FLASH_INTERNAL_H
 
 #define FLASH_BASE ((u8 *)0xE000000)
+#define SRAM_BASE ((u8 *)0xE000000)
 
 #define FLASH_WRITE(addr, data) ((*(vu8 *)(FLASH_BASE + (addr))) = (data))
 
@@ -73,5 +74,12 @@ u16 EraseFlashChip_MX(void);
 u16 EraseFlashSector_MX(u16 sectorNum);
 u16 ProgramFlashByte_MX(u16 sectorNum, u32 offset, u8 data);
 u16 ProgramFlashSector_MX(u16 sectorNum, u8 *src);
+
+u8 *GetFlashAddrForSector(u16 sectorNum);
+void CopyFlashToSram(u16 slotNum);
+u16 CopySramToFlash(u16 slotNum);
+
+#define FLASH_SAVE_START 0x8f00000
+#define FLASH_SECTOR_SIZE 0x20000
 
 #endif // GUARD_GBA_FLASH_INTERNAL_H

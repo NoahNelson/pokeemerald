@@ -1,5 +1,6 @@
 #include "gba/gba.h"
 #include "gba/flash_internal.h"
+#include "save.h"
 
 static u8 sTimerNum;
 static u16 sTimerCount;
@@ -136,6 +137,21 @@ void ReadFlash_Core(vu8 *src, u8 *dest, u32 size)
     }
 }
 
+u8 *GetFlashAddrForSector(u16 sectorNum)
+{
+    u16 special_sector;
+    if (sectorNum < NUM_SECTORS_PER_SLOT) {
+        // First save slot occupies the first flash sector
+        return FLASH_SAVE_START + SECTOR_SIZE * sectorNum;
+    }
+    if (sectorNum < NUM_SECTORS_PER_SLOT * 2) {
+        // Second save slot occupies the second flash sector
+        return FLASH_SAVE_START + FLASH_SECTOR_SIZE + SECTOR_SIZE * sectorNum;
+    }
+    special_sector = sectorNum - SECTOR_ID_HOF_1 + NUM_SAVE_SLOTS;
+    return FLASH_SAVE_START + FLASH_SECTOR_SIZE * special_sector;
+}
+
 void ReadFlash(u16 sectorNum, u32 offset, u8 *dest, u32 size)
 {
     u8 *src;
@@ -146,12 +162,6 @@ void ReadFlash(u16 sectorNum, u32 offset, u8 *dest, u32 size)
     void (*readFlash_Core)(vu8 *, u8 *, u32);
 
     REG_WAITCNT = (REG_WAITCNT & ~WAITCNT_SRAM_MASK) | WAITCNT_SRAM_8;
-
-    if (gFlash->romSize == FLASH_ROM_SIZE_1M)
-    {
-        SwitchFlashBank(sectorNum / SECTORS_PER_BANK);
-        sectorNum %= SECTORS_PER_BANK;
-    }
 
     funcSrc = (vu16 *)ReadFlash_Core;
     funcSrc = (vu16 *)((s32)funcSrc ^ 1);
@@ -167,7 +177,7 @@ void ReadFlash(u16 sectorNum, u32 offset, u8 *dest, u32 size)
 
     readFlash_Core = (void (*)(vu8 *, u8 *, u32))((s32)readFlash_Core_Buffer + 1);
 
-    src = FLASH_BASE + (sectorNum << gFlash->sector.shift) + offset;
+    src = GetFlashAddrForSector(sectorNum);
 
     readFlash_Core(src, dest, size);
 }
@@ -195,12 +205,6 @@ u32 VerifyFlashSector(u16 sectorNum, u8 *src)
 
     REG_WAITCNT = (REG_WAITCNT & ~WAITCNT_SRAM_MASK) | WAITCNT_SRAM_8;
 
-    if (gFlash->romSize == FLASH_ROM_SIZE_1M)
-    {
-        SwitchFlashBank(sectorNum / SECTORS_PER_BANK);
-        sectorNum %= SECTORS_PER_BANK;
-    }
-
     funcSrc = (vu16 *)VerifyFlashSector_Core;
     funcSrc = (vu16 *)((s32)funcSrc ^ 1);
     funcDest = verifyFlashSector_Core_Buffer;
@@ -215,7 +219,7 @@ u32 VerifyFlashSector(u16 sectorNum, u8 *src)
 
     verifyFlashSector_Core = (u32 (*)(u8 *, u8 *, u32))((s32)verifyFlashSector_Core_Buffer + 1);
 
-    tgt = FLASH_BASE + (sectorNum << gFlash->sector.shift);
+    tgt = GetFlashAddrForSector(sectorNum);
     size = gFlash->sector.size;
 
     return verifyFlashSector_Core(src, tgt, size);
@@ -229,12 +233,6 @@ u32 VerifyFlashSectorNBytes(u16 sectorNum, u8 *src, u32 n)
     vu16 *funcDest;
     u8 *tgt;
     u32 (*verifyFlashSector_Core)(u8 *, u8 *, u32);
-
-    if (gFlash->romSize == FLASH_ROM_SIZE_1M)
-    {
-        SwitchFlashBank(sectorNum / SECTORS_PER_BANK);
-        sectorNum %= SECTORS_PER_BANK;
-    }
 
     REG_WAITCNT = (REG_WAITCNT & ~WAITCNT_SRAM_MASK) | WAITCNT_SRAM_8;
 
@@ -252,7 +250,7 @@ u32 VerifyFlashSectorNBytes(u16 sectorNum, u8 *src, u32 n)
 
     verifyFlashSector_Core = (u32 (*)(u8 *, u8 *, u32))((s32)verifyFlashSector_Core_Buffer + 1);
 
-    tgt = FLASH_BASE + (sectorNum << gFlash->sector.shift);
+    tgt = GetFlashAddrForSector(sectorNum);
 
     return verifyFlashSector_Core(src, tgt, n);
 }

@@ -134,6 +134,7 @@ static u8 WriteSaveSectorOrSlot(u16 sectorId, const struct SaveSectorLocation *l
 {
     u32 status;
     u16 i;
+    u16 slotNum;
 
     gReadWriteSector = &gSaveDataBuffer;
 
@@ -151,6 +152,8 @@ static u8 WriteSaveSectorOrSlot(u16 sectorId, const struct SaveSectorLocation *l
         gLastWrittenSector++;
         gLastWrittenSector = gLastWrittenSector % NUM_SECTORS_PER_SLOT;
         gSaveCounter++;
+        slotNum = gSaveCounter % NUM_SAVE_SLOTS;
+        CopyFlashToSram(slotNum);
         status = SAVE_STATUS_OK;
 
         for (i = 0; i < NUM_SECTORS_PER_SLOT; i++)
@@ -162,6 +165,11 @@ static u8 WriteSaveSectorOrSlot(u16 sectorId, const struct SaveSectorLocation *l
             status = SAVE_STATUS_ERROR;
             gLastWrittenSector = gLastKnownGoodSector;
             gSaveCounter = gLastSaveCounter;
+        }
+
+        if (CopySramToFlash(slotNum))
+        {
+            status = SAVE_STATUS_ERROR;
         }
     }
 
@@ -907,7 +915,7 @@ u16 GetSaveBlocksPointersBaseOffset(void)
     for (i = 0; i < NUM_SECTORS_PER_SLOT; i++)
     {
         ReadFlashSector(i + slotOffset, gReadWriteSector);
-        
+
         // Base offset for SaveBlock2 is calculated using the trainer id
         if (gReadWriteSector->id == SECTOR_ID_SAVEBLOCK2)
             return sector->data[offsetof(struct SaveBlock2, playerTrainerId[0])] +

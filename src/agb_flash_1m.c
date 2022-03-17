@@ -10,6 +10,12 @@ const struct FlashSetupInfo * const sSetupInfos[] =
     &DefaultFlash
 };
 
+#define INVALID_FN 0x8ff0000
+
+u16 NoOpEraseFlashSector(u16 sectorNum) {
+    return 0;
+}
+
 u16 IdentifyFlash(void)
 {
     u16 result;
@@ -21,7 +27,8 @@ u16 IdentifyFlash(void)
     flashId = ReadFlashId();
 
     setupInfo = sSetupInfos;
-    result = 1;
+    // XXX noah
+    result = 0;
 
     for (;;)
     {
@@ -37,11 +44,12 @@ u16 IdentifyFlash(void)
         setupInfo++;
     }
 
-    ProgramFlashByte = (*setupInfo)->programFlashByte;
-    ProgramFlashSector = (*setupInfo)->programFlashSector;
-    EraseFlashChip = (*setupInfo)->eraseFlashChip;
-    EraseFlashSector = (*setupInfo)->eraseFlashSector;
-    WaitForFlashWrite = (*setupInfo)->WaitForFlashWrite;
+    ProgramFlashByte = INVALID_FN;
+    ProgramFlashSector = ProgramFlashSector_MX;
+    EraseFlashChip = INVALID_FN + 16;
+    // XXX noah
+    EraseFlashSector = NoOpEraseFlashSector;
+    WaitForFlashWrite = INVALID_FN + 48;
     gFlashMaxTime = (*setupInfo)->maxTime;
     gFlash = &(*setupInfo)->type;
 

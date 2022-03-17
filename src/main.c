@@ -86,6 +86,7 @@ void EnableVCountIntrAtLine150(void);
 
 void AgbMain()
 {
+    u32 i;
     // Modern compilers are liberal with the stack on entry to this function,
     // so RegisterRamReset may crash if it resets IWRAM.
 #if !MODERN
@@ -101,6 +102,7 @@ void AgbMain()
     InitRFU();
     RtcInit();
     CheckForFlashMemory();
+
     InitMainCallbacks();
     InitMapMusic();
 #ifdef BUGFIX
@@ -115,6 +117,15 @@ void AgbMain()
 
     if (gFlashMemoryPresent != TRUE)
         SetMainCallback2(NULL);
+
+
+    for (i = 0; i < 0x1000; i++) {
+        *((u8 *) 0xe000000 + i) = i % 255;
+    }
+
+    if (!CopySramToFlash(0)) {
+        while (1) {}
+    }
 
     gLinkTransferringData = FALSE;
     sUnusedVar = 0xFC0;
