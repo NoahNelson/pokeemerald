@@ -146,7 +146,7 @@ u8 *GetFlashAddrForSector(u16 sectorNum)
     }
     if (sectorNum < NUM_SECTORS_PER_SLOT * 2) {
         // Second save slot occupies the second flash sector
-        return FLASH_SAVE_START + FLASH_SECTOR_SIZE + SECTOR_SIZE * sectorNum;
+        return FLASH_SAVE_START + FLASH_SECTOR_SIZE + SECTOR_SIZE * (sectorNum - NUM_SECTORS_PER_SLOT);
     }
     special_sector = sectorNum - SECTOR_ID_HOF_1 + NUM_SAVE_SLOTS;
     return FLASH_SAVE_START + FLASH_SECTOR_SIZE * special_sector;
@@ -266,9 +266,14 @@ u32 ProgramFlashSectorAndVerify(u16 sectorNum, u8 *src)
         if (result != 0)
             continue;
 
+        /*
+         * Skip verify - we won't write the sector back to flash until all of
+         * the sectors are written to SRAM. XXX
+         *
         result = VerifyFlashSector(sectorNum, src);
         if (result == 0)
             break;
+            */
     }
 
     return result;

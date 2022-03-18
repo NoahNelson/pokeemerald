@@ -633,7 +633,7 @@ static u8 GetSaveValidStatus(const struct SaveSectorLocation *locations)
         return SAVE_STATUS_EMPTY;
     }
 
-    // Both slots errored
+    // Both slots errored - or one is empty and the other errored
     gSaveCounter = 0;
     gLastWrittenSector = 0;
     return SAVE_STATUS_CORRUPT;

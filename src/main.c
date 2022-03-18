@@ -118,15 +118,6 @@ void AgbMain()
     if (gFlashMemoryPresent != TRUE)
         SetMainCallback2(NULL);
 
-
-    for (i = 0; i < 0x1000; i++) {
-        *((u8 *) 0xe000000 + i) = i % 255;
-    }
-
-    if (!CopySramToFlash(0)) {
-        while (1) {}
-    }
-
     gLinkTransferringData = FALSE;
     sUnusedVar = 0xFC0;
 

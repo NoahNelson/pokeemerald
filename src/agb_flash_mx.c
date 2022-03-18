@@ -168,14 +168,12 @@ void CopyFlashToSram(u16 slotNum) {
 
 #define FLASH_SAVE_OFFSET 0x0f00000
 #define AGB_ROM 0x8000000
-#define SRAM_SIZE 0x1000
+#define SRAM_SIZE 0x10000
 #define _FLASH_WRITE(pa, pd) { *(((u16 *)AGB_ROM)+((pa)/2)) = pd; __asm("nop"); }
 
 u16 _CopySramToFlash(u16 slotNum) {
     u32 dst = FLASH_SAVE_OFFSET + slotNum * FLASH_SECTOR_SIZE;
-	u16 ie = REG_IE;
     int i;
-	REG_IE = ie & 0xFFFE;
     // Erase flash sector
     _FLASH_WRITE(dst, 0xF0);
     _FLASH_WRITE(0xAAA, 0xA9);
@@ -194,7 +192,7 @@ u16 _CopySramToFlash(u16 slotNum) {
     _FLASH_WRITE(dst, 0xF0);
     *(vu16 *)BG_PLTT = RGB_GREEN; // Set the backdrop to white on startup
     // Write data
-    for (i=0; i<SRAM_SIZE / 2; i+=2) {
+    for (i=0; i<SRAM_SIZE; i+=2) {
         u16 half = (*(u8 *)(SRAM_BASE+i+1)) << 8 | (*(u8 *)(SRAM_BASE+i));
         _FLASH_WRITE(0xAAA, 0xA9);
         _FLASH_WRITE(0x555, 0x56);
@@ -209,7 +207,6 @@ u16 _CopySramToFlash(u16 slotNum) {
     }
     *(vu16 *)BG_PLTT = RGB_CYAN; // Set the backdrop to white on startup
     _FLASH_WRITE(dst, 0xF0);
-	REG_IE = ie;
     return 0;
 }
 
@@ -219,6 +216,12 @@ u16 CopySramToFlash(u16 slotNum) {
     vu16 *funcSrc;
     vu16 *funcDst;
     u16 (*innerFunc)(u16);
+    u16 result;
+    u16 ie = REG_IE;
+    u16 ime = REG_IME;
+    REG_IE = 0;
+    REG_IME = 0;
+
     *(vu16 *)BG_PLTT = RGB_YELLOW; // Set the backdrop to white on startup
     funcSrc = (vu16 *)_CopySramToFlash;
     funcSrc = (vu16 *)((s32)funcSrc ^ 1);
@@ -232,7 +235,10 @@ u16 CopySramToFlash(u16 slotNum) {
     }
     innerFunc = (u16 (*)(u16))((s32)inner_func_buffer + 1);
     *(vu16 *)BG_PLTT = RGB_BLUE; // Set the backdrop to white on startup
-    return innerFunc(slotNum);
+    result =  innerFunc(slotNum);
+    REG_IE = ie;
+    REG_IME = ime;
+    return result;
 }
 
 void CopySectorToSram(u16 sectorNum, u8 *src) {
