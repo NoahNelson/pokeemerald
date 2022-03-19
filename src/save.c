@@ -93,6 +93,7 @@ EWRAM_DATA static u8 sUnusedVar = 0;
 void ClearSaveData(void)
 {
     u16 i;
+    // XXX noah: should erase these in the ROM
 
     // Clear the full save two sectors at a time
     for (i = 0; i < SECTORS_COUNT / 2; i++)
@@ -311,6 +312,7 @@ static u8 HandleReplaceSectorAndVerify(u16 sectorId, const struct SaveSectorLoca
 // Similar to HandleWriteSector, but fully erases the sector first, and skips writing the first security byte
 static u8 HandleReplaceSector(u16 sectorId, const struct SaveSectorLocation *locations)
 {
+    // XXX noah - needs to write to SRAM, probably
     u16 i;
     u16 sector;
     u8 *data;

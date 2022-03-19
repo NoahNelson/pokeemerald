@@ -78,6 +78,7 @@ u16 ProgramFlashSector_MX(u16 sectorNum, u8 *src);
 u8 *GetFlashAddrForSector(u16 sectorNum);
 void CopyFlashToSram(u16 slotNum);
 u16 CopySramToFlash(u16 slotNum);
+u16 CopyToFlash(u16 sectorNum, u8 *src, u32 size);
 
 #define FLASH_SAVE_START 0x8f00000
 #define FLASH_SECTOR_SIZE 0x20000

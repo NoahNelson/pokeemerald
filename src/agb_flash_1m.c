@@ -44,12 +44,19 @@ u16 IdentifyFlash(void)
         setupInfo++;
     }
 
-    ProgramFlashByte = INVALID_FN;
     ProgramFlashSector = ProgramFlashSector_MX;
+
+    // Look at users. often this is used for the 2 save slots, so can just write to SRAM
+    ProgramFlashByte = INVALID_FN;
+
+    // These two aren't used
     EraseFlashChip = INVALID_FN + 16;
-    // XXX noah
-    EraseFlashSector = NoOpEraseFlashSector;
     WaitForFlashWrite = INVALID_FN + 48;
+
+    // Get rid of users of this
+    EraseFlashSector = NoOpEraseFlashSector;
+
+    // XXX noah
     gFlashMaxTime = (*setupInfo)->maxTime;
     gFlash = &(*setupInfo)->type;
 
