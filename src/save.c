@@ -310,9 +310,10 @@ static u8 HandleReplaceSectorAndVerify(u16 sectorId, const struct SaveSectorLoca
 }
 
 // Similar to HandleWriteSector, but fully erases the sector first, and skips writing the first security byte
+// This now writes to SRAM - caller is responsible for copying the right
+// slot to SRAM first, and writing it back to flash after.
 static u8 HandleReplaceSector(u16 sectorId, const struct SaveSectorLocation *locations)
 {
-    // XXX noah - needs to write to SRAM, probably
     u16 i;
     u16 sector;
     u8 *data;
@@ -322,7 +323,6 @@ static u8 HandleReplaceSector(u16 sectorId, const struct SaveSectorLocation *loc
     // Adjust sector id for current save slot
     sector = sectorId + gLastWrittenSector;
     sector %= NUM_SECTORS_PER_SLOT;
-    sector += NUM_SECTORS_PER_SLOT * (gSaveCounter % NUM_SAVE_SLOTS);
 
     // Get current save data
     data = locations[sectorId].data;
@@ -343,56 +343,22 @@ static u8 HandleReplaceSector(u16 sectorId, const struct SaveSectorLocation *loc
 
     gReadWriteSector->checksum = CalculateChecksum(data, size);
 
-    // Erase old save data
-    EraseFlashSector(sector);
-
     status = SAVE_STATUS_OK;
 
     // Write new save data up to security field
     for (i = 0; i < SECTOR_SECURITY_OFFSET; i++)
     {
-        if (ProgramFlashByte(sector, i, ((u8 *)gReadWriteSector)[i]))
-        {
-            status = SAVE_STATUS_ERROR;
-            break;
-        }
+        *(SRAM_BASE + sector * SECTOR_SIZE + i) = ((u8 *)gReadWriteSector)[i];
     }
 
-    if (status == SAVE_STATUS_ERROR)
+    // Write security (skipping the first byte) and counter fields.
+    // The byte of security that is skipped is instead written by WriteSectorSecurityByte or WriteSectorSecurityByte_NoOffset
+    for (i = 0; i < SECTOR_SIZE - (SECTOR_SECURITY_OFFSET + 1); i++)
     {
-        // Writing save data failed
-        SetDamagedSectorBits(ENABLE, sector);
-        return SAVE_STATUS_ERROR;
+        *(SRAM_BASE + sector * SECTOR_SIZE + SECTOR_SECURITY_OFFSET + 1 + i) = ((u8 *)gReadWriteSector)[i + 1 + SECTOR_SECURITY_OFFSET];
     }
-    else
-    {
-        // Writing save data succeeded, write security and counter
-        status = SAVE_STATUS_OK;
 
-        // Write security (skipping the first byte) and counter fields.
-        // The byte of security that is skipped is instead written by WriteSectorSecurityByte or WriteSectorSecurityByte_NoOffset
-        for (i = 0; i < SECTOR_SIZE - (SECTOR_SECURITY_OFFSET + 1); i++)
-        {
-            if (ProgramFlashByte(sector, SECTOR_SECURITY_OFFSET + 1 + i, ((u8 *)gReadWriteSector)[SECTOR_SECURITY_OFFSET + 1 + i]))
-            {
-                status = SAVE_STATUS_ERROR;
-                break;
-            }
-        }
-
-        if (status == SAVE_STATUS_ERROR)
-        {
-            // Writing security/counter failed
-            SetDamagedSectorBits(ENABLE, sector);
-            return SAVE_STATUS_ERROR;
-        }
-        else
-        {
-            // Succeeded
-            SetDamagedSectorBits(DISABLE, sector);
-            return SAVE_STATUS_OK;
-        }
-    }
+    return SAVE_STATUS_OK;
 }
 
 static u8 WriteSectorSecurityByte_NoOffset(u16 sectorId, const struct SaveSectorLocation *locations)
@@ -401,23 +367,10 @@ static u8 WriteSectorSecurityByte_NoOffset(u16 sectorId, const struct SaveSector
     // This first line lacking -1 is the only difference from WriteSectorSecurityByte
     u16 sector = sectorId + gLastWrittenSector;
     sector %= NUM_SECTORS_PER_SLOT;
-    sector += NUM_SECTORS_PER_SLOT * (gSaveCounter % NUM_SAVE_SLOTS);
 
     // Write just the first byte of the security field, which was skipped by HandleReplaceSector
-    if (ProgramFlashByte(sector, SECTOR_SECURITY_OFFSET, SECTOR_SECURITY_NUM & 0xFF))
-    {
-        // Sector is damaged, so enable the bit in gDamagedSaveSectors and restore the last written sector and save counter.
-        SetDamagedSectorBits(ENABLE, sector);
-        gLastWrittenSector = gLastKnownGoodSector;
-        gSaveCounter = gLastSaveCounter;
-        return SAVE_STATUS_ERROR;
-    }
-    else
-    {
-        // Succeeded
-        SetDamagedSectorBits(DISABLE, sector);
-        return SAVE_STATUS_OK;
-    }
+    *(SRAM_BASE + sector * SECTOR_SIZE + SECTOR_SECURITY_OFFSET) = SECTOR_SECURITY_NUM & 0xFF;
+    return SAVE_STATUS_OK;
 }
 
 static u8 CopySectorSecurityByte(u16 sectorId, const struct SaveSectorLocation *locations)
@@ -425,23 +378,10 @@ static u8 CopySectorSecurityByte(u16 sectorId, const struct SaveSectorLocation *
     // Adjust sector id for current save slot
     u16 sector = sectorId + gLastWrittenSector - 1;
     sector %= NUM_SECTORS_PER_SLOT;
-    sector += NUM_SECTORS_PER_SLOT * (gSaveCounter % NUM_SAVE_SLOTS);
 
     // Copy just the first byte of the security field from the read/write buffer
-    if (ProgramFlashByte(sector, SECTOR_SECURITY_OFFSET, ((u8 *)gReadWriteSector)[SECTOR_SECURITY_OFFSET]))
-    {
-        // Sector is damaged, so enable the bit in gDamagedSaveSectors and restore the last written sector and save counter.
-        SetDamagedSectorBits(ENABLE, sector);
-        gLastWrittenSector = gLastKnownGoodSector;
-        gSaveCounter = gLastSaveCounter;
-        return SAVE_STATUS_ERROR;
-    }
-    else
-    {
-        // Succeded
-        SetDamagedSectorBits(DISABLE, sector);
-        return SAVE_STATUS_OK;
-    }
+    *(SRAM_BASE + sector * SECTOR_SIZE + SECTOR_SECURITY_OFFSET) = ((u8 *)gReadWriteSector)[SECTOR_SECURITY_OFFSET];
+    return SAVE_STATUS_OK;
 }
 
 static u8 WriteSectorSecurityByte(u16 sectorId, const struct SaveSectorLocation *locations)
@@ -748,10 +688,12 @@ u8 HandleSavingData(u8 saveType)
         // Used by link / Battle Frontier
         // Write only SaveBlocks 1 and 2 (skips the PC)
         CopyPartyAndObjectsToSave();
+        CopyFlashToSram(gSaveCounter % NUM_SAVE_SLOTS);
         for(i = SECTOR_ID_SAVEBLOCK2; i <= SECTOR_ID_SAVEBLOCK1_END; i++)
             HandleReplaceSector(i, gRamSaveSectorLocations);
         for(i = SECTOR_ID_SAVEBLOCK2; i <= SECTOR_ID_SAVEBLOCK1_END; i++)
             WriteSectorSecurityByte_NoOffset(i, gRamSaveSectorLocations);
+        CopySramToFlash(gSaveCounter % NUM_SAVE_SLOTS);
         break;
     case SAVE_OVERWRITE_DIFFERENT_FILE:
         // Erase Hall of Fame
@@ -793,6 +735,7 @@ bool8 LinkFullSave_Init(void)
 {
     if (gFlashMemoryPresent != TRUE)
         return TRUE;
+    CopyFlashToSram(gSaveCounter % NUM_SAVE_SLOTS);
     UpdateSaveAddresses();
     CopyPartyAndObjectsToSave();
     RestoreSaveBackupVarsAndIncrement(gRamSaveSectorLocations);
@@ -825,15 +768,19 @@ bool8 LinkFullSave_ReplaceLastSector(void)
 bool8 LinkFullSave_SetLastSectorSecurity(void)
 {
     CopySectorSecurityByte(NUM_SECTORS_PER_SLOT, gRamSaveSectorLocations);
+    CopySramToFlash(gSaveCounter % NUM_SAVE_SLOTS);
     if (gDamagedSaveSectors)
         DoSaveFailedScreen(SAVE_NORMAL);
     return FALSE;
 }
 
+// XXX noah
 u8 WriteSaveBlock2(void)
 {
     if (gFlashMemoryPresent != TRUE)
         return TRUE;
+
+    CopyFlashToSram(gSaveCounter % NUM_SAVE_SLOTS);
 
     UpdateSaveAddresses();
     CopyPartyAndObjectsToSave();
@@ -845,6 +792,7 @@ u8 WriteSaveBlock2(void)
     return FALSE;
 }
 
+// XXX noah
 // Used in conjunction with WriteSaveBlock2 to write both for certain link saves.
 // This will be called repeatedly in a task, writing each sector of SaveBlock1 incrementally.
 // It returns TRUE when finished.
@@ -865,6 +813,7 @@ bool8 WriteSaveBlock1Sector(void)
         // are the same for all valid sectors it doesn't matter.
         WriteSectorSecurityByte(sectorId, gRamSaveSectorLocations);
         finished = TRUE;
+        CopySramToFlash(gSaveCounter % NUM_SAVE_SLOTS);
     }
 
     if (gDamagedSaveSectors)
