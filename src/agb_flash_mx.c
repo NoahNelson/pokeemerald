@@ -135,10 +135,10 @@ u16 EraseFlashSector_MX(u16 sectorNum)
     return result;
 }
 
-u16 _ProgramFlashByte_MX(u32 offset, u8 data)
+u16 _ProgramFlashByte_MX(u16 sectorNum, u32 offset, u8 data)
 {
-    u32 dst = FLASH_SAVE_OFFSET + offset;
-
+    u8 *dst = SRAM_BASE + sectorNum * SECTOR_SIZE + offset;
+    *dst = data;
 }
 
 u16 ProgramFlashByte_MX(u16 sectorNum, u32 offset, u8 data)

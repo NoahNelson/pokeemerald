@@ -952,6 +952,7 @@ void Task_LinkFullSave(u8 taskId)
     case 3:
         if (!tInBattleTower)
             SetContinueGameWarpStatusToDynamicWarp();
+        CopyFlashToSram(gSaveCounter % NUM_SAVE_SLOTS);
         LinkFullSave_Init();
         tState = 4;
         break;
