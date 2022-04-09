@@ -735,7 +735,6 @@ bool8 LinkFullSave_Init(void)
 {
     if (gFlashMemoryPresent != TRUE)
         return TRUE;
-    CopyFlashToSram(gSaveCounter % NUM_SAVE_SLOTS);
     UpdateSaveAddresses();
     CopyPartyAndObjectsToSave();
     RestoreSaveBackupVarsAndIncrement(gRamSaveSectorLocations);
@@ -768,7 +767,6 @@ bool8 LinkFullSave_ReplaceLastSector(void)
 bool8 LinkFullSave_SetLastSectorSecurity(void)
 {
     CopySectorSecurityByte(NUM_SECTORS_PER_SLOT, gRamSaveSectorLocations);
-    CopySramToFlash(gSaveCounter % NUM_SAVE_SLOTS);
     if (gDamagedSaveSectors)
         DoSaveFailedScreen(SAVE_NORMAL);
     return FALSE;

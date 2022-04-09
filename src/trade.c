@@ -1,5 +1,6 @@
 #include "global.h"
 #include "malloc.h"
+#include "gba/flash_internal.h"
 #include "battle_anim.h"
 #include "battle_interface.h"
 #include "bg.h"
@@ -2466,7 +2467,7 @@ int GetUnionRoomTradeMessageId(struct RfuGameCompatibilityData player, struct Rf
     else
     {
         // Player's Pokémon must be of the type the partner requested
-        if (gBaseStats[playerSpecies2].type1 != requestedType 
+        if (gBaseStats[playerSpecies2].type1 != requestedType
          && gBaseStats[playerSpecies2].type2 != requestedType)
             return UR_TRADE_MSG_NOT_MON_PARTNER_WANTS;
     }
@@ -4654,6 +4655,7 @@ static void CB2_SaveAndEndTrade(void)
             MysteryGift_TryIncrementStat(CARD_STAT_NUM_TRADES, gLinkPlayers[GetMultiplayerId() ^ 1].trainerId);
 
         SetContinueGameWarpStatusToDynamicWarp();
+        CopyFlashToSram(gSaveCounter % NUM_SAVE_SLOTS);
         LinkFullSave_Init();
         gMain.state++;
         sTradeData->timer = 0;
@@ -4786,6 +4788,7 @@ static void CB2_FreeTradeData(void)
             DestroyWirelessStatusIndicatorSprite();
         SetMainCallback2(gMain.savedCallback);
     }
+    CopySramToFlash(gSaveCounter % NUM_SAVE_SLOTS);
     RunTasks();
     AnimateSprites();
     BuildOamBuffer();
@@ -4964,6 +4967,7 @@ static void CB2_SaveAndEndWirelessTrade(void)
             StringExpandPlaceholders(gStringVar4, gText_SavingDontTurnOffPower);
             DrawTextOnTradeWindow(0, gStringVar4, 0);
             IncrementGameStat(GAME_STAT_POKEMON_TRADES);
+            CopyFlashToSram(gSaveCounter % NUM_SAVE_SLOTS);
             LinkFullSave_Init();
             sTradeData->timer = 0;
         }
