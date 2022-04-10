@@ -1269,11 +1269,13 @@ static void Task_SaveAfterLinkBattle(u8 taskId)
             break;
         case 1:
             SetContinueGameWarpStatusToDynamicWarp();
-            WriteSaveBlock2();
+            // XXX noah: One of this and case 2 is what crashes - come back to
+            // this at some point to fix link battle saving.
+            //WriteSaveBlock2();
             *state = 2;
             break;
         case 2:
-            if (WriteSaveBlock1Sector())
+            //if (WriteSaveBlock1Sector())
             {
                 ClearContinueGameWarpStatus2();
                 *state = 3;
@@ -1290,11 +1292,13 @@ static void Task_SaveAfterLinkBattle(u8 taskId)
             DestroyTask(taskId);
             break;
         case 5:
-            CreateTask(Task_LinkFullSave, 5);
+            // I think this is for wireless, or battles with other games.
+            // Comment it out to be safe.
+            //CreateTask(Task_LinkFullSave, 5);
             *state = 6;
             break;
         case 6:
-            if (!FuncIsActiveTask(Task_LinkFullSave))
+            //if (!FuncIsActiveTask(Task_LinkFullSave))
             {
                 *state = 3;
             }
