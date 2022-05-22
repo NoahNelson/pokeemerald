@@ -1,0 +1,4 @@
+-lib kiss
+-cp src
+--main tesseract_all.Main
+--interp

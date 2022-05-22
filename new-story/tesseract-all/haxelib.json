@@ -1,0 +1,17 @@
+{
+	"main": "tesseract_all.Main",
+	"name": "tesseract-all",
+	"description": "filter images for the ones with unique ocr-legible text",
+	"classPath": "src/",
+	"dependencies": {
+		"kiss": ""
+	},
+	"url": "https://github.com/NQNStudios/kisslang",
+	"contributors": [
+		"NQNStudios"
+	],
+	"version": "0.0.0",
+	"releasenote": "",
+	"tags": [],
+	"license": "LGPL"
+}
