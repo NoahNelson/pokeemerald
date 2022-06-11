@@ -222,9 +222,14 @@ static const struct MenuAction sItemStorage_MenuActions[] =
     [MENU_EXIT]     = { gText_Cancel,       ItemStorage_Exit }
 };
 
+
 static const struct ItemSlot sNewGamePCItems[] =
 {
     { ITEM_POTION, 1 },
+    { ITEM_POKE_BALL, 5 },
+#if DEBUG
+    { ITEM_MASTER_BALL, 5 },
+#endif
     { ITEM_NONE, 0 }
 };
 
