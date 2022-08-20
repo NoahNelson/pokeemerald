@@ -526,7 +526,10 @@ LittlerootTown_ProfessorBirchsLab_EventScript_GivePokedex::
 	setflag FLAG_ADVENTURE_STARTED
 	setvar VAR_OLDALE_TOWN_STATE, 1
 	setvar VAR_LITTLEROOT_RIVAL_STATE, 4
-	setvar VAR_LITTLEROOT_TOWN_STATE, 3
+
+	@ Jump to state 4, since we gave running shoes at the start. This should
+	@ keep us from having to tear out all of the events that give the shoes.
+	setvar VAR_LITTLEROOT_TOWN_STATE, 4
 	releaseall
 	end
 
