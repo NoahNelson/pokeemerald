@@ -140,7 +140,7 @@ static void Debug_DestroyMainMenu(u8 taskId)
     ClearStdWindowAndFrame(gTasks[taskId].data[1], TRUE);
     RemoveWindow(gTasks[taskId].data[1]);
     DestroyTask(taskId);
-    EnableBothScriptContexts();
+    ScriptContext_Enable();
 }
 
 static void DebugTask_HandleMainMenuInput(u8 taskId)
@@ -175,7 +175,7 @@ static void DebugAction_DestroyExtraWindow(u8 taskId)
     RemoveWindow(gTasks[taskId].data[2]);
 
     DestroyTask(taskId);
-    EnableBothScriptContexts();
+    ScriptContext_Enable();
 }
 
 static void Encounter_Pokemon(u16 species) {
