@@ -125,12 +125,12 @@
 #define ITEM_STAR_PIECE 109
 #define ITEM_NUGGET 110
 #define ITEM_HEART_SCALE 111
-#define ITEM_070 112
-#define ITEM_071 113
-#define ITEM_072 114
-#define ITEM_073 115
-#define ITEM_074 116
-#define ITEM_075 117
+#define ITEM_070 201 // swapped dragon scale
+#define ITEM_071 199 // swapped metal coat
+#define ITEM_072 187 // swapped kings rock
+#define ITEM_073 192 // swapped deep sea tooth
+#define ITEM_074 193 // swapped deep sea scale
+#define ITEM_075 218 // swapped up grade
 #define ITEM_076 118
 #define ITEM_077 119
 #define ITEM_078 120
@@ -214,21 +214,21 @@
 #define ITEM_SOOTHE_BELL 184
 #define ITEM_MENTAL_HERB 185
 #define ITEM_CHOICE_BAND 186
-#define ITEM_KINGS_ROCK 187
+#define ITEM_KINGS_ROCK 114
 #define ITEM_SILVER_POWDER 188
 #define ITEM_AMULET_COIN 189
 #define ITEM_CLEANSE_TAG 190
 #define ITEM_SOUL_DEW 191
-#define ITEM_DEEP_SEA_TOOTH 192
-#define ITEM_DEEP_SEA_SCALE 193
+#define ITEM_DEEP_SEA_TOOTH 115
+#define ITEM_DEEP_SEA_SCALE 116
 #define ITEM_SMOKE_BALL 194
 #define ITEM_EVERSTONE 195
 #define ITEM_FOCUS_BAND 196
 #define ITEM_LUCKY_EGG 197
 #define ITEM_SCOPE_LENS 198
-#define ITEM_METAL_COAT 199
+#define ITEM_METAL_COAT 113
 #define ITEM_LEFTOVERS 200
-#define ITEM_DRAGON_SCALE 201
+#define ITEM_DRAGON_SCALE 112
 #define ITEM_LIGHT_BALL 202
 #define ITEM_SOFT_SAND 203
 #define ITEM_HARD_STONE 204
@@ -245,7 +245,7 @@
 #define ITEM_CHARCOAL 215
 #define ITEM_DRAGON_FANG 216
 #define ITEM_SILK_SCARF 217
-#define ITEM_UP_GRADE 218
+#define ITEM_UP_GRADE 117
 #define ITEM_SHELL_BELL 219
 #define ITEM_SEA_INCENSE 220
 #define ITEM_LAX_INCENSE 221

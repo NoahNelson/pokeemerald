@@ -228,7 +228,13 @@ static const struct ItemSlot sNewGamePCItems[] =
     { ITEM_POTION, 1 },
     { ITEM_POKE_BALL, 5 },
 #if DEBUG
-    { ITEM_MASTER_BALL, 5 },
+    { ITEM_MASTER_BALL, 50 },
+    { ITEM_KINGS_ROCK, 3 },
+    { ITEM_DRAGON_SCALE, 3 },
+    { ITEM_METAL_COAT, 3 },
+    { ITEM_UP_GRADE, 3 },
+    { ITEM_DEEP_SEA_TOOTH, 3 },
+    { ITEM_DEEP_SEA_SCALE, 3 },
 #endif
     { ITEM_NONE, 0 }
 };
