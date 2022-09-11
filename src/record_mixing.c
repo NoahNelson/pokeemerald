@@ -286,7 +286,7 @@ static void ReceiveExchangePacket(u32 multiplayerId)
 
 static void PrintTextOnRecordMixing(const u8 *src)
 {
-    DrawDialogueFrame(0, 0);
+    DrawDialogueFrame(0, FALSE);
     AddTextPrinterParameterized(0, FONT_NORMAL, src, 0, 1, 0, NULL);
     CopyWindowToVram(0, COPYWIN_FULL);
 }
@@ -364,9 +364,9 @@ static void Task_RecordMixing_Main(u8 taskId)
             SetLinkWaitingForScript();
             if (gWirelessCommType != 0)
                 CreateTask(Task_ReturnToFieldRecordMixing, 10);
-            ClearDialogWindowAndFrame(0, 1);
+            ClearDialogWindowAndFrame(0, TRUE);
             DestroyTask(taskId);
-            EnableBothScriptContexts();
+            ScriptContext_Enable();
         }
         break;
     }
@@ -445,7 +445,7 @@ static void Task_MixingRecordsRecv(u8 taskId)
         }
         break;
     case 1: // wait for handshake
-        if (gReceivedRemoteLinkPlayers != 0)
+        if (gReceivedRemoteLinkPlayers)
         {
             ConvertIntToDecimalStringN(gStringVar1, GetMultiplayerId_(), STR_CONV_MODE_LEADING_ZEROS, 2);
             task->tState = 5;
@@ -1176,7 +1176,7 @@ static void ReceiveApprenticeData(struct Apprentice *records, size_t recordSize,
     u32 apprenticeSaveId;
 
     ShufflePlayerIndices(mixIndices);
-    mixApprentice = (void*)records + (recordSize * mixIndices[multiplayerId]);
+    mixApprentice = (void *)records + (recordSize * mixIndices[multiplayerId]);
     numApprentices = 0;
     apprenticeId = 0;
     for (i = 0; i < 2; i++)
